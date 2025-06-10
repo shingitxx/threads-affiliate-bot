@@ -182,13 +182,13 @@ function getImageFromDriveByContentId(contentId: string): ImageData | null {
         const mimeType = file.getBlob().getContentType();
         const supportedTypes = CONFIG.SUPPORTED_IMAGE_TYPES || ['image/jpeg', 'image/png', 'image/gif'];
 
-        if (!supportedTypes.includes(mimeType)) {
+        if (!mimeType || !supportedTypes.includes(mimeType)) {
           continue;
         }
 
         const sizeInMB = file.getSize() / (1024 * 1024);
         const maxSize = CONFIG.MAX_IMAGE_SIZE_MB || 10;
-        
+
         if (sizeInMB > maxSize) {
           continue;
         }
@@ -255,11 +255,11 @@ function formatMainPostText(content: Content): string {
 /**
  * メイン投稿実行（画像対応・制限なし）
  */
-function executeMainPostWithCloudinary(account: Account, content: Content): PostResult {
+export function executeMainPostWithCloudinary(account: Account, content: Content): PostResult {
   try {
     const postText = formatMainPostText(content);
 
-    if (content.useImage !== 'YES' && content.useImage !== true) {
+    if (content.useImage !== 'YES') {
       return executeTextOnlyPost(account, content, postText);
     }
 
@@ -477,7 +477,7 @@ function getAccountById(accountId: string): Account | null {
 
     const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
     const accountRow = data.find((row: any[]) => row[0] === accountId);
-    
+
     if (!accountRow) return null;
 
     return {
@@ -659,7 +659,7 @@ function recordContentSelection(accountId: string, contentId: string): void {
     const historyKey = `CONTENT_HISTORY_${accountId}`;
 
     const existingHistory = properties.getProperty(historyKey);
-    let history: Array<{contentId: string, timestamp: number}> = existingHistory ? JSON.parse(existingHistory) : [];
+    let history: Array<{ contentId: string, timestamp: number }> = existingHistory ? JSON.parse(existingHistory) : [];
 
     history.unshift({
       contentId: contentId,
@@ -695,7 +695,7 @@ function getRecentContentSelections(accountId: string): string[] {
     }
 
     const history = JSON.parse(existingHistory);
-    return history.map((item: {contentId: string, timestamp: number}) => item.contentId);
+    return history.map((item: { contentId: string, timestamp: number }) => item.contentId);
   } catch (error) {
     console.error('❌ 最近使用コンテンツ取得エラー:', error);
     return [];
@@ -942,7 +942,7 @@ function recordAffiliateSelection(
     const historyKey = `AFFILIATE_HISTORY_${accountId}_${contentId}`;
 
     const existingHistory = properties.getProperty(historyKey);
-    let history: Array<{affiliateId: string, timestamp: number}> = existingHistory ? JSON.parse(existingHistory) : [];
+    let history: Array<{ affiliateId: string, timestamp: number }> = existingHistory ? JSON.parse(existingHistory) : [];
 
     history.unshift({
       affiliateId: affiliateId,
@@ -983,7 +983,7 @@ function getRecentAffiliateSelections(
     }
 
     const history = JSON.parse(existingHistory);
-    return history.map((item: {affiliateId: string, timestamp: number}) => item.affiliateId);
+    return history.map((item: { affiliateId: string, timestamp: number }) => item.affiliateId);
   } catch (error) {
     console.error('❌ 最近使用アフィリエイト取得エラー:', error);
     return [];
@@ -1044,7 +1044,7 @@ function clearAffiliateSelectionHistory(accountId: string | null = null, content
 /**
  * 統合版コンテンツ取得（アカウント別ランダム対応）
  */
-function getContentForPostingIntegrated(accountId: string | null = null): Content | null {
+export function getContentForPostingIntegrated(accountId: string | null = null): Content | null {
   try {
     if (
       CONFIG.RANDOM_CONTENT?.ENABLE_RANDOM_SELECTION &&
@@ -1118,7 +1118,7 @@ function getContentForPostingFallback(accountId: string | null = null): Content 
 /**
  * 統合版アフィリエイト取得（アカウント別ランダム対応）
  */
-function getAffiliateContentIntegrated(contentId: string, accountId: string | null = null): AffiliateContent | null {
+export function getAffiliateContentIntegrated(contentId: string, accountId: string | null = null): AffiliateContent | null {
   try {
     if (
       CONFIG.RANDOM_CONTENT?.ENABLE_RANDOM_SELECTION &&
@@ -1144,7 +1144,7 @@ function getAffiliateContent(contentId: string): AffiliateContent | null {
 
     const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
     const affiliateRow = data.find((row: any[]) => row[2] === contentId);
-    
+
     if (!affiliateRow) {
       return getDefaultAffiliateContent();
     }
@@ -1208,81 +1208,7 @@ function scheduleReplyPost(account: Account, content: AffiliateContent, parentPo
   }
 }
 
-/**
- * シンプルリプライ実行（制限削除済み）
- */
-function executeThreadReplySimple(
-  account: Account,
-  affiliateContent: AffiliateContent,
-  parentPostId: string
-): ReplyResult {
-  try {
-    if (!account || !affiliateContent || !parentPostId) {
-      return { success: false, error: '必要なパラメータが不足しています' };
-    }
 
-    const replyText = formatAffiliateReplyText(affiliateContent);
-
-    const createResponse = UrlFetchApp.fetch(
-      `${CONFIG.THREADS_API_BASE}/${account.userId}/threads`,
-      {
-        method: HTTP_METHODS.POST,
-        headers: {
-          Authorization: `Bearer ${account.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        payload: JSON.stringify({
-          text: replyText,
-          media_type: 'TEXT',
-          reply_to_id: parentPostId,
-        }),
-        muteHttpExceptions: true,
-      }
-    );
-
-    const createCode = createResponse.getResponseCode();
-    if (createCode !== 200) {
-      return {
-        success: false,
-        error: `リプライ作成失敗: ${createCode} - ${createResponse.getContentText()}`,
-      };
-    }
-
-    const createResult = JSON.parse(createResponse.getContentText());
-    Utilities.sleep(2000);
-
-    const publishResponse = UrlFetchApp.fetch(
-      `${CONFIG.THREADS_API_BASE}/${account.userId}/threads_publish`,
-      {
-        method: HTTP_METHODS.POST,
-        headers: {
-          Authorization: `Bearer ${account.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        payload: JSON.stringify({ creation_id: createResult.id }),
-        muteHttpExceptions: true,
-      }
-    );
-
-    const publishCode = publishResponse.getResponseCode();
-    if (publishCode === 200) {
-      const publishResult = JSON.parse(publishResponse.getContentText());
-      return {
-        success: true,
-        postId: publishResult.id,
-        creationId: createResult.id,
-      };
-    } else {
-      return {
-        success: false,
-        error: `リプライ公開失敗: ${publishCode} - ${publishResponse.getContentText()}`,
-      };
-    }
-  } catch (error) {
-    console.error('シンプルリプライエラー:', error);
-    return { success: false, error: handleUnknownError(error) };
-  }
-}
 
 /**
  * スケジュールリプライ実行（制限削除済み）
@@ -1618,122 +1544,6 @@ function executeAllAccountsReliable(): ExecutionResult {
     };
   }
 }
-
-// ==============================================
-// メイン実行機能（完全無制限版）
-// ==============================================
-
-/**
- * 単一アカウント投稿（推奨メイン関数）
- */
-function mainWithSimpleReply(): void {
-  try {
-    console.log('🚀 === 完全無制限投稿システム ===');
-    console.log('✅ 日次制限: 無制限');
-    console.log('✅ 投稿間隔: 無制限');
-    console.log('✅ アカウント制限: 無制限');
-
-    const accounts = getActiveAccounts();
-    if (accounts.length === 0) {
-      console.log('❌ アクティブなアカウントがありません');
-      return;
-    }
-
-    const selectedAccount = selectAccountForPosting(accounts);
-    if (!selectedAccount) {
-      console.log('❌ アカウント選択に失敗しました');
-      return;
-    }
-
-    console.log(
-      `🎯 使用アカウント: ${selectedAccount.username} (${selectedAccount.id})`
-    );
-
-    const content = getContentForPostingIntegrated(selectedAccount.id);
-    if (!content) {
-      console.log('❌ 投稿するコンテンツがありません');
-      return;
-    }
-
-    console.log(
-      `📝 選択コンテンツ: ${content.id} - ${content.mainText.substring(0, 30)}...`
-    );
-
-    const mainPostResult = executeMainPostWithCloudinary(
-      selectedAccount,
-      content
-    );
-    if (!mainPostResult.success) {
-      logError(
-        'メイン投稿失敗',
-        selectedAccount.username,
-        mainPostResult.error || ''
-      );
-      console.error(`❌ メイン投稿失敗: ${mainPostResult.error}`);
-      return;
-    }
-
-    console.log(`✅ メイン投稿成功: ${mainPostResult.postId}`);
-
-    Utilities.sleep(5000);
-
-    const affiliateContent = getAffiliateContentIntegrated(
-      content.id,
-      selectedAccount.id
-    );
-    if (affiliateContent) {
-      const replyResult = executeThreadReplySimple(
-        selectedAccount,
-        affiliateContent,
-        mainPostResult.postId || ''
-      );
-
-      if (replyResult.success) {
-        console.log(`🎉 リプライ投稿成功: ${replyResult.postId}`);
-        const affiliateType = (affiliateContent as any).isSharedAffiliate
-          ? 'reply_shared_affiliate'
-          : 'reply_account_affiliate';
-        logPostActivity(
-          selectedAccount,
-          {
-            id: affiliateContent.id,
-            mainText: affiliateContent.description,
-            useImage: 'NO',
-            usage: 0,
-          },
-          {
-            success: true,
-            postId: replyResult.postId,
-          },
-          affiliateType + '_unlimited'
-        );
-      } else {
-        console.log(`⚠️ リプライ投稿失敗: ${replyResult.error || ''}`);
-        logError(
-          'リプライ投稿失敗',
-          selectedAccount.username,
-          replyResult.error || ''
-        );
-      }
-    } else {
-      console.log('⚠️ アフィリエイトコンテンツが見つかりません');
-    }
-
-    const postType = mainPostResult.hasImage
-      ? 'main_with_cloudinary_image_unlimited'
-      : 'main_text_only_unlimited';
-    logPostActivity(selectedAccount, content, mainPostResult, postType);
-
-    console.log('🎉 === 完全無制限投稿完了 ===');
-  } catch (error) {
-    console.error('❌ 無制限投稿エラー:', error);
-    logError('無制限投稿システムエラー', 'system', handleUnknownError(error));
-  }
-}
-
-// ==============================================
-// 時間指定投稿システム
-// ==============================================
 
 /**
  * 時間指定投稿実行（無制限統合版）
@@ -2188,25 +1998,7 @@ function showUsageGuide(): void {
   console.log('  📊 完全無制限ログ記録');
 }
 
-// ==============================================
-// 未定義関数の実装（追加）
-// ==============================================
 
-/**
- * 統合版アフィリエイト取得
- */
-export function getAffiliateContentIntegrated(contentId: string, accountId: string | null = null): AffiliateContent | null {
-  try {
-    if (CONFIG.RANDOM_CONTENT?.ENABLE_RANDOM_SELECTION && accountId) {
-      return getRandomAffiliateForAccount(contentId, accountId);
-    } else {
-      return getAffiliateContent(contentId);
-    }
-  } catch (error) {
-    console.error('❌ 統合アフィリエイト取得エラー:', handleUnknownError(error));
-    return getAffiliateContent(contentId);
-  }
-}
 
 /**
  * シンプルリプライ実行
@@ -2290,7 +2082,7 @@ export function executeThreadReplySimple(
 export function mainWithSimpleReply(): void {
   try {
     console.log('🚀 === 完全無制限投稿システム ===');
-    
+
     const accounts = getActiveAccounts();
     if (accounts.length === 0) {
       console.log('❌ アクティブなアカウントがありません');

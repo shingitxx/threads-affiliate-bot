@@ -48,7 +48,7 @@ export interface Account {
     appId: string;
     userId: string;
     status: string;
-    lastPostTime?: Date;
+    lastPostTime?: Date | string; // ← stringも許可
     dailyPostCount?: number;
 }
 
