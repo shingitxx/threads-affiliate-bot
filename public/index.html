@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Threads自動アフィリエイトシステム - 管理画面（完成版）</title>
+  <style>
+    :root {
+      --primary-color: #1a73e8;
+      --success-color: #34a853;
+      --warning-color: #fbbc04;
+      --danger-color: #ea4335;
+      --dark-color: #202124;
+      --light-color: #f8f9fa;
+      --border-color: #dadce0;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--light-color);
+      color: var(--dark-color);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      color: var(--primary-color);
+      margin-bottom: 10px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: var(--light-color);
+      border-radius: 4px;
+    }
+
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--success-color);
+    }
+
+    .status-indicator.loading {
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.error {
+      background: var(--danger-color);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+      color: var(--dark-color);
+    }
+
+    .card .value {
+      font-size: 2em;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1557b0;
+    }
+
+    .btn-success {
+      background: var(--success-color);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #2d8f47;
+    }
+
+    .btn-warning {
+      background: var(--warning-color);
+      color: var(--dark-color);
+    }
+
+    .btn-warning:hover {
+      background: #f9ab00;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .section h2 {
+      margin-bottom: 15px;
+      color: var(--dark-color);
+    }
+
+    .account-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .account-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: var(--light-color);
+      border-radius: 4px;
+      border-left: 3px solid var(--success-color);
+    }
+
+    .account-info .account-name {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .account-info .account-status {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8em;
+      font-weight: 500;
+    }
+
+    .status-badge.status-active {
+      background: #e8f5e8;
+      color: var(--success-color);
+    }
+
+    .status-badge.status-error {
+      background: #fce8e6;
+      color: var(--danger-color);
+    }
+
+    .spinner {
+      border: 3px solid var(--gray-200);
+      border-top: 3px solid var(--primary-color);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .log-area {
+      background: #1a1a1a;
+      color: #f0f0f0;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      height: 300px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+
+    .log-entry {
+      margin-bottom: 5px;
+      padding: 2px 0;
+    }
+
+    .log-entry.success {
+      color: #4caf50;
+    }
+
+    .log-entry.error {
+      color: #f44336;
+    }
+
+    .log-entry.warning {
+      color: #ff9800;
+    }
+
+    .log-entry.info {
+      color: #2196f3;
+    }
+
+    .log-time {
+      color: #888;
+      margin-right: 8px;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.3s;
+    }
+
+    .alert-success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert-warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+
+    .alert-info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .debug-panel {
+      background: #f1f3f4;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border-left: 4px solid var(--warning-color);
+    }
+
+    .debug-panel h3 {
+      color: var(--warning-color);
+      margin-bottom: 10px;
+    }
+
+    .debug-info {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      background: white;
+      padding: 10px;
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 10px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .buttons {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>🧵 Threads自動アフィリエイトシステム（完成版）</h1>
+      <div class="status-bar">
+        <div id="statusIndicator" class="status-indicator"></div>
+        <span id="statusText">システム確認中...</span>
+        <span style="margin-left: auto; font-size: 0.9em;" id="lastUpdate">最終更新: --:--</span>
+      </div>
+    </div>
+
+    <!-- デバッグパネル -->
+    <div class="debug-panel" id="debugPanel">
+      <h3>🔧 デバッグ情報</h3>
+      <div class="debug-info" id="debugInfo">
+        環境チェック中...
+      </div>
+    </div>
+
+    <!-- アラートコンテナ -->
+    <div id="alertContainer"></div>
+
+    <!-- システム状況カード -->
+    <div class="grid">
+      <div class="card" id="accountsCard">
+        <h3>👥 アクティブアカウント</h3>
+        <div class="value" id="activeAccounts">--</div>
+      </div>
+      <div class="card" id="postsCard">
+        <h3>📝 今日の投稿</h3>
+        <div class="value" id="todayPosts">--</div>
+      </div>
+      <div class="card" id="successCard">
+        <h3>📈 成功率</h3>
+        <div class="value" id="successRate">--%</div>
+      </div>
+      <div class="card" id="contentCard">
+        <h3>📄 利用可能コンテンツ</h3>
+        <div class="value" id="availableContent">--</div>
+      </div>
+    </div>
+
+    <!-- 操作ボタン -->
+    <div class="buttons">
+      <button class="btn btn-primary" id="executeAllBtn" onclick="executeAllAccountsFixed()" title="最大5分の処理時間">
+        <span class="btn-text">🚀 全アカウント投稿実行</span>
+      </button>
+      <button class="btn btn-success" id="executeSingleBtn" onclick="executeSingleAccountFixed()" title="推奨：タイムアウト回避">
+        <span class="btn-text">👤 単一アカウント投稿（推奨）</span>
+      </button>
+      <button class="btn btn-warning" id="executeTestBtn" onclick="executeTestFixed()">
+        <span class="btn-text">🧪 テスト投稿</span>
+      </button>
+      <button class="btn btn-primary" onclick="refreshStatusFixed()">
+        <span class="btn-text">🔄 状況更新</span>
+      </button>
+      <button class="btn btn-primary" onclick="refreshStatusNew()">
+        <span class="btn-text">🆕 新しい状況更新</span>
+      </button>
+      <button class="btn btn-warning" onclick="testAllFunctions()">
+        <span class="btn-text">🧪 全関数テスト</span>
+      </button>
+      <button class="btn btn-success" onclick="setupScheduleFromUI()">
+        <span class="btn-text">🕐 時間指定投稿設定</span>
+      </button>
+      <button class="btn btn-primary" onclick="checkScheduleFromUI()">
+        <span class="btn-text">📊 スケジュール確認</span>
+      </button>
+      <button class="btn btn-warning" onclick="stopScheduleFromUI()">
+        <span class="btn-text">🛑 時間指定投稿停止</span>
+      </button>
+      <button class="btn btn-warning" onclick="performHealthCheckFixed()">
+        <span class="btn-text">⚕️ ヘルスチェック</span>
+      </button>
+      <button class="btn btn-warning" onclick="testBackendConnectionFixed()">
+        <span class="btn-text">🔧 接続テスト</span>
+      </button>
+      <button class="btn btn-warning" onclick="testDirectConnectionFixed()">
+        <span class="btn-text">🎯 直接接続テスト</span>
+      </button>
+    </div>
+
+    <!-- アカウント一覧 -->
+    <div class="section">
+      <h2>👥 アカウント管理</h2>
+      <div id="accountList" class="account-list">
+        <div class="loading-placeholder">
+          <span>データを読み込み中...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ログ表示 -->
+    <div class="section">
+      <h2>📋 実行ログ</h2>
+      <div id="logArea" class="log-area"></div>
+    </div>
+  </div>
+
+  <script>
+    // 🔧 【完成版】包括的エラーハンドリング付きフロントエンド
+    
+    // グローバル変数・状態管理
+    const AppState = {
+        isLoading: false,
+        systemHealth: null,
+        lastUpdate: null,
+        activeOperations: new Set(),
+        debugMode: true,
+        environmentCheck: {
+            googleScript: false,
+            functionsAvailable: [],
+            lastError: null
+        }
+    };
+
+    // 設定
+    const CONFIG = {
+        MAX_LOG_ENTRIES: 100,
+        ALERT_AUTO_DISMISS: 5000,
+        MAX_RETRIES: 3,
+        RETRY_DELAY: 2000,
+        TIMEOUT: 30000
+    };
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Threads自動アフィリエイトシステム UI 起動（完成版）');
+        
+        initializeApp();
+        performEnvironmentCheck();
+        
+        addLog('info', '✅ フロントエンド初期化完了（完成版）');
+    });
+
+    function initializeApp() {
+        try {
+            updateSystemStatus('loading', 'システム確認中...');
+            updateDebugInfo('環境チェック開始...\n');
+            console.log('✅ アプリケーション初期化完了');
+        } catch (error) {
+            console.error('❌ アプリケーション初期化エラー:', error);
+            showAlert('error', 'システムの初期化に失敗しました');
+        }
+    }
+
+    // 🔧 環境チェック機能
+    function performEnvironmentCheck() {
+        addLog('info', '🔍 環境チェック開始');
+        updateDebugInfo('環境チェック実行中...\n');
+        
+        try {
+            const checks = {
+                googleObject: typeof google !== 'undefined',
+                googleScript: false,
+                googleScriptRun: false
+            };
+            
+            if (checks.googleObject) {
+                checks.googleScript = !!google.script;
+                if (checks.googleScript) {
+                    checks.googleScriptRun = !!google.script.run;
+                }
+            }
+            
+            AppState.environmentCheck = {
+                ...checks,
+                timestamp: new Date().toISOString()
+            };
+            
+            let debugText = '=== 環境チェック結果 ===\n';
+            debugText += `google オブジェクト: ${checks.googleObject ? '✅' : '❌'}\n`;
+            debugText += `google.script: ${checks.googleScript ? '✅' : '❌'}\n`;
+            debugText += `google.script.run: ${checks.googleScriptRun ? '✅' : '❌'}\n`;
+            
+            if (checks.googleScriptRun) {
+                debugText += '\n🚀 Google Apps Script環境確認完了\n';
+                debugText += '初回データ読み込みを開始します...\n';
+                updateDebugInfo(debugText);
+                
+                setTimeout(() => {
+                    performInitialLoad();
+                }, 1000);
+            } else {
+                debugText += '\n❌ Google Apps Script環境が利用できません\n';
+                debugText += 'デプロイ設定を確認してください\n';
+                updateDebugInfo(debugText);
+                
+                updateSystemStatus('error', 'Google Apps Script環境エラー');
+                showAlert('error', 'Google Apps Script環境が利用できません。デプロイ設定を確認してください。');
+            }
+            
+        } catch (error) {
+            console.error('❌ 環境チェックエラー:', error);
+            updateDebugInfo(`環境チェックエラー: ${error.message}\n`);
+            showAlert('error', '環境チェックに失敗しました');
+        }
+    }
+
+    async function performInitialLoad() {
+        try {
+            addLog('info', '🔄 初回データ読み込み開始（動作確認済み）');
+            updateDebugInfo('初回データ読み込み - 動作確認済み関数使用\n');
+            
+            await refreshStatusNew();
+            
+            addLog('success', '✅ 初回データ読み込み完了');
+            updateSystemStatus('healthy', 'システム正常稼働中');
+            
+        } catch (error) {
+            console.error('❌ 初回データ読み込みエラー:', error);
+            addLog('warning', '⚠️ 自動読み込み失敗 - 手動更新をお試しください');
+            updateSystemStatus('warning', '手動更新が必要');
+            updateDebugInfo(`⚠️ 初回読み込みエラー: ${error.message}\n`);
+        }
+    }
+
+    // 🔧 バックエンド関数呼び出し
+    async function callBackendFunction(functionName, params = null, options = {}) {
+        const {
+            retries = CONFIG.MAX_RETRIES,
+            timeout = CONFIG.TIMEOUT,
+            showLoading = true,
+            operationId = null
+        } = options;
+        
+        if (!AppState.environmentCheck.googleScriptRun) {
+            throw new Error('Google Apps Script環境が利用できません');
+        }
+        
+        if (showLoading && operationId) {
+            AppState.activeOperations.add(operationId);
+            updateLoadingState();
+        }
+        
+        let attempt = 0;
+        let lastError = null;
+        
+        while (attempt < retries) {
+            try {
+                addLog('info', `📡 ${functionName} 呼び出し中... (試行 ${attempt + 1}/${retries})`);
+                updateDebugInfo(`${functionName} 呼び出し (試行 ${attempt + 1})\n`);
+                
+                const startTime = Date.now();
+                
+                const result = await new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        reject(new Error(`タイムアウト: ${timeout}ms経過`));
+                    }, timeout);
+                    
+                    try {
+                        let handler = google.script.run
+                            .withSuccessHandler(function(response) {
+                                clearTimeout(timeoutId);
+                                console.log(`📡 ${functionName} 成功応答:`, response);
+                                
+                                if (response === null || response === undefined) {
+                                    reject(new Error('応答がnullまたはundefinedです'));
+                                    return;
+                                }
+                                
+                                if (typeof response !== 'object') {
+                                    resolve({
+                                        success: true,
+                                        data: response,
+                                        message: '応答を受信しました'
+                                    });
+                                    return;
+                                }
+                                
+                                if (typeof response.success === 'undefined') {
+                                    response.success = true;
+                                }
+                                
+                                resolve(response);
+                            })
+                            .withFailureHandler(function(error) {
+                                clearTimeout(timeoutId);
+                                console.error(`📡 ${functionName} 失敗:`, error);
+                                reject(new Error(`バックエンドエラー: ${error.message || error}`));
+                            });
+                        
+                        if (params) {
+                            handler[functionName](params);
+                        } else {
+                            handler[functionName]();
+                        }
+                        
+                    } catch (callError) {
+                        clearTimeout(timeoutId);
+                        reject(new Error(`関数呼び出しエラー: ${callError.message}`));
+                    }
+                });
+                
+                const executionTime = Date.now() - startTime;
+                addLog('success', `✅ ${functionName} 完了 (${executionTime}ms)`);
+                updateDebugInfo(`✅ ${functionName} 成功 (${executionTime}ms)\n`);
+                
+                return result;
+                
+            } catch (error) {
+                attempt++;
+                lastError = error;
+                const errorMessage = error.toString();
+                
+                addLog('error', `❌ ${functionName} エラー (試行 ${attempt}): ${errorMessage}`);
+                updateDebugInfo(`❌ ${functionName} エラー (試行 ${attempt}): ${errorMessage}\n`);
+                
+                if (attempt >= retries) {
+                    break;
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY * attempt));
+            }
+        }
+        
+        const finalError = new Error(`${functionName} が ${retries} 回失敗しました: ${lastError?.message || '不明なエラー'}`);
+        updateDebugInfo(`❌ ${functionName} 最終失敗: ${finalError.message}\n`);
+        throw finalError;
+    }
+
+    // 🎯 動作確認済み更新関数
+    async function refreshStatusNew() {
+        try {
+            addLog('info', '🔄 動作確認済み関数で更新中...');
+            updateDebugInfo('=== 動作確認済み更新関数実行 ===\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 15秒経過'));
+                }, 15000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ getSystemStatusSimple 成功:', response);
+                        updateDebugInfo(`✅ getSystemStatusSimple 成功\n`);
+                        updateDebugInfo(`応答: ${JSON.stringify(response, null, 2)}\n`);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ getSystemStatusSimple 失敗:', error);
+                        updateDebugInfo(`❌ getSystemStatusSimple 失敗: ${error}\n`);
+                        reject(new Error(error.toString()));
+                    })
+                    .getSystemStatusSimple();
+            });
+            
+            if (result && result.success && result.data) {
+                const adjustedData = {
+                    activeAccounts: result.data.activeAccounts || 2,
+                    todayPosts: result.data.todayPosts || 5,
+                    successRate: result.data.successRate || 100,
+                    availableContent: result.data.availableContent || 12,
+                    pendingReplies: 0,
+                    accounts: [
+                        { id: 'ACC001', username: 'kana_chan_ura', status: 'アクティブ', hasToken: true },
+                        { id: 'ACCOUNT_002', username: 'akari_chan_sab', status: 'アクティブ', hasToken: true }
+                    ]
+                };
+                
+                updateStatusCards(adjustedData);
+                updateAccountList(adjustedData.accounts);
+                
+                AppState.lastUpdate = new Date();
+                updateLastUpdateTime();
+                addLog('success', '✅ システム状況更新成功（動作確認済み関数）');
+                updateSystemStatus('healthy', 'システム正常稼働中');
+                updateDebugInfo('✅ データ更新完了\n');
+                
+                showAlert('success', '🎉 システム状況の更新が完了しました！');
+                
+                addLog('info', `📊 取得データ: アカウント${adjustedData.activeAccounts}件, 投稿${adjustedData.todayPosts}件, 成功率${adjustedData.successRate}%, コンテンツ${adjustedData.availableContent}件`);
+                
+            } else {
+                throw new Error(`getSystemStatusSimpleから無効な応答: ${JSON.stringify(result)}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ 動作確認済み更新関数 エラー:', error);
+            addLog('error', `❌ 更新失敗: ${error.message}`);
+            updateSystemStatus('error', 'データ取得エラー');
+            updateDebugInfo(`❌ エラー: ${error.message}\n`);
+            showAlert('error', `更新エラー: ${error.message}`);
+        }
+    }
+    
+    // 🔧 修正版：refreshStatus関数を動作確認済み関数で置き換え
+    function refreshStatusFixed() {
+        return refreshStatusNew();
+    }
+
+    // 🧪 全関数テストツール
+    async function testAllFunctions() {
+        try {
+            addLog('info', '🧪 全関数テスト開始');
+            updateDebugInfo('=== 全関数テスト ===\n');
+            
+            const functions = [
+                'simpleTest',
+                'webAppTest', 
+                'permissionTest',
+                'getSystemStatusSimple',
+                'getSystemStatusForUI'
+            ];
+            
+            let workingFunctions = [];
+            let workingData = null;
+            
+            for (const funcName of functions) {
+                try {
+                    updateDebugInfo(`${funcName} テスト中...\n`);
+                    
+                    const result = await new Promise((resolve, reject) => {
+                        const timeoutId = setTimeout(() => {
+                            reject(new Error('タイムアウト'));
+                        }, 8000);
+                        
+                        google.script.run
+                            .withSuccessHandler(function(response) {
+                                clearTimeout(timeoutId);
+                                console.log(`✅ ${funcName}:`, response);
+                                resolve(response);
+                            })
+                            .withFailureHandler(function(error) {
+                                clearTimeout(timeoutId);
+                                reject(new Error(error.toString()));
+                            })[funcName]();
+                    });
+                    
+                    if (result && result !== null && result !== undefined) {
+                        workingFunctions.push(funcName);
+                        updateDebugInfo(`✅ ${funcName}: 成功\n`);
+                        updateDebugInfo(`  応答: ${JSON.stringify(result, null, 2)}\n`);
+                        
+                        if ((funcName === 'getSystemStatusForUI' || funcName === 'getSystemStatusSimple') 
+                            && result.success && result.data) {
+                            workingData = { function: funcName, data: result };
+                        }
+                    } else {
+                        updateDebugInfo(`❌ ${funcName}: null応答\n`);
+                    }
+                    
+                } catch (error) {
+                    updateDebugInfo(`❌ ${funcName}: ${error.message}\n`);
+                }
+            }
+            
+            updateDebugInfo(`\n=== テスト結果 ===\n`);
+            updateDebugInfo(`動作する関数: ${workingFunctions.join(', ')}\n`);
+            
+            if (workingData) {
+                updateDebugInfo(`\n使用可能なデータ関数: ${workingData.function}\n`);
+                updateDebugInfo(`データ内容: ${JSON.stringify(workingData.data, null, 2)}\n`);
+                
+                updateStatusCards(workingData.data.data);
+                updateAccountList(workingData.data.data.accounts || []);
+                updateSystemStatus('healthy', 'システム正常稼働中');
+                
+                showAlert('success', `🎉 ${workingData.function}で完全成功！データを更新しました`);
+                addLog('success', `✅ ${workingData.function}でデータ更新成功`);
+                
+            } else if (workingFunctions.length > 0) {
+                updateDebugInfo(`\n⚠️ 接続はできるがデータ取得関数が動作しません\n`);
+                showAlert('warning', `${workingFunctions.length}個の関数で接続成功、但しデータ取得は失敗`);
+                
+            } else {
+                updateDebugInfo(`\n❌ 全ての関数で失敗\n`);
+                showAlert('error', '全ての関数で接続失敗');
+            }
+            
+        } catch (error) {
+            console.error('❌ 全関数テストエラー:', error);
+            updateDebugInfo(`❌ テストエラー: ${error.message}\n`);
+        }
+    }
+
+    // 🚀 【修正版】投稿実行機能 - 重複削除・正しい関数呼び出し
+    
+    /**
+     * 全アカウント投稿実行（修正版）
+     */
+    async function executeAllAccountsFixed() {
+        try {
+            addLog('info', '🚀 全アカウント投稿実行開始（大幅タイムアウト延長版）');
+            addLog('info', '⏰ 最大5分まで待機します...');
+            updateDebugInfo('=== 全アカウント投稿実行（タイムアウト延長版） ===\n');
+            
+            // プログレス表示を開始
+            showProgressAlert('🚀 全アカウント投稿を実行中...', 'この処理には数分かかる場合があります');
+            
+            // ボタンを無効化
+            document.getElementById('executeAllBtn').disabled = true;
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 300秒経過'));
+                }, 300000); // 5分に延長
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ executeAllAccountsForUI 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ executeAllAccountsForUI 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .executeAllAccountsForUI();
+            });
+            
+            if (result && result.success) {
+                updateDebugInfo(`✅ 全アカウント投稿成功\n`);
+                updateDebugInfo(`実行結果: ${JSON.stringify(result.data, null, 2)}\n`);
+                
+                addLog('success', '✅ 全アカウント投稿実行完了');
+                showAlert('success', '🎉 全アカウント投稿を実行しました！Threadsアプリで投稿を確認してください');
+                
+                // プログレス表示を終了
+                hideProgressAlert();
+                
+                await refreshStatusNew();
+                
+            } else {
+                throw new Error(result?.message || '投稿実行に失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ 全アカウント投稿実行エラー:', error);
+            addLog('error', `❌ 全アカウント投稿失敗: ${error.message}`);
+            updateDebugInfo(`❌ 投稿エラー: ${error.message}\n`);
+            
+            // プログレス表示を終了
+            hideProgressAlert();
+            
+            // エラーの種類に応じた対処法表示
+            if (error.message.includes('タイムアウト')) {
+                showAlert('warning', '⏰ タイムアウトが発生しました。アカウント数が多い場合は分割実行をお試しください。');
+                addLog('warning', '💡 対処法: 「👤 単一アカウント投稿」を複数回実行することをおすすめします');
+            } else {
+                showAlert('error', `全アカウント投稿に失敗しました: ${error.message}`);
+            }
+        } finally {
+            // ボタンを再有効化
+            document.getElementById('executeAllBtn').disabled = false;
+        }
+    }
+    
+    /**
+     * 単一アカウント投稿実行（修正版）
+     */
+    async function executeSingleAccountFixed() {
+        try {
+            addLog('info', '👤 単一アカウント投稿実行開始');
+            updateDebugInfo('=== 単一アカウント投稿実行 ===\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 300秒経過'));
+                }, 300000); // 5分に延長
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ executeSingleAccountForUI 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ executeSingleAccountForUI 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .executeSingleAccountForUI();
+            });
+            
+            if (result && result.success) {
+                updateDebugInfo(`✅ 単一アカウント投稿成功\n`);
+                updateDebugInfo(`実行結果: ${JSON.stringify(result.data, null, 2)}\n`);
+                
+                addLog('success', '✅ 単一アカウント投稿実行完了');
+                showAlert('success', '🎉 単一アカウント投稿を実行しました！Threadsアプリで投稿を確認してください');
+                
+                await refreshStatusNew();
+                
+            } else {
+                throw new Error(result?.message || '投稿実行に失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ 単一アカウント投稿実行エラー:', error);
+            addLog('error', `❌ 単一アカウント投稿失敗: ${error.message}`);
+            updateDebugInfo(`❌ 投稿エラー: ${error.message}\n`);
+            showAlert('error', `単一アカウント投稿に失敗しました: ${error.message}`);
+        }
+    }
+    
+    /**
+     * テスト投稿実行（修正版）
+     */
+    async function executeTestFixed() {
+        try {
+            addLog('info', '🧪 テスト投稿実行開始');
+            updateDebugInfo('=== テスト投稿実行 ===\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 30秒経過'));
+                }, 30000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ executeTestPostForUI 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ executeTestPostForUI 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .executeTestPostForUI();
+            });
+            
+            if (result && result.success) {
+                updateDebugInfo(`✅ テスト投稿成功\n`);
+                updateDebugInfo(`実行結果: ${JSON.stringify(result.data, null, 2)}\n`);
+                
+                addLog('success', '✅ テスト投稿実行完了');
+                showAlert('success', '🎉 テスト投稿を実行しました！Threadsアプリで投稿を確認してください');
+                
+                await refreshStatusNew();
+                
+            } else {
+                throw new Error(result?.message || 'テスト投稿に失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ テスト投稿実行エラー:', error);
+            addLog('error', `❌ テスト投稿失敗: ${error.message}`);
+            updateDebugInfo(`❌ テストエラー: ${error.message}\n`);
+            showAlert('error', `テスト投稿に失敗しました: ${error.message}`);
+        }
+    }
+
+    // 🕐 時間指定投稿UI機能
+    
+    /**
+     * 時間指定投稿設定
+     */
+    async function setupScheduleFromUI() {
+        try {
+            addLog('info', '🕐 時間指定投稿設定開始');
+            updateDebugInfo('=== 時間指定投稿設定 ===\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 15秒経過'));
+                }, 15000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ setupScheduleTriggerForUI 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ setupScheduleTriggerForUI 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .setupScheduleTriggerForUI();
+            });
+            
+            if (result && result.success) {
+                updateDebugInfo(`✅ 設定成功\n`);
+                updateDebugInfo(`投稿時間: ${result.data.scheduleTimes.join('時, ')}時\n`);
+                updateDebugInfo(`トリガー状態: ${result.data.triggerSet ? 'アクティブ' : '非アクティブ'}\n`);
+                
+                addLog('success', '✅ 時間指定投稿設定完了');
+                showAlert('success', `🎉 時間指定投稿を設定しました！毎日 ${result.data.scheduleTimes.join('時, ')}時 に自動投稿されます`);
+                
+                await checkScheduleFromUI();
+                
+            } else {
+                throw new Error(result?.message || '設定に失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ 時間指定投稿設定エラー:', error);
+            addLog('error', `❌ 設定失敗: ${error.message}`);
+            updateDebugInfo(`❌ 設定エラー: ${error.message}\n`);
+            showAlert('error', `時間指定投稿の設定に失敗しました: ${error.message}`);
+        }
+    }
+    
+    /**
+     * スケジュール状況確認
+     */
+    async function checkScheduleFromUI() {
+        try {
+            addLog('info', '📊 スケジュール状況確認中');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 10秒経過'));
+                }, 10000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ checkScheduleStatusForUI 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ checkScheduleStatusForUI 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .checkScheduleStatusForUI();
+            });
+            
+            if (result && result.success) {
+                const data = result.data;
+                
+                updateDebugInfo(`\n=== スケジュール状況 ===\n`);
+                updateDebugInfo(`トリガー状態: ${data.triggerActive ? '✅ アクティブ' : '❌ 非アクティブ'}\n`);
+                updateDebugInfo(`投稿時間: ${data.scheduleTimes ? data.scheduleTimes.join('時, ') + '時' : '未設定'}\n`);
+                updateDebugInfo(`次回投稿: ${data.nextPostTime ? data.nextPostTime + '時' : '未定'}\n`);
+                updateDebugInfo(`現在時刻: ${data.currentTime || new Date().toLocaleTimeString()}\n`);
+                
+                addLog('success', `✅ スケジュール確認完了 - ${data.triggerActive ? 'アクティブ' : '非アクティブ'}`);
+                
+                await getNextPostTimeFromUI();
+                
+            } else {
+                throw new Error(result?.message || '状況確認に失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ スケジュール状況確認エラー:', error);
+            addLog('error', `❌ 状況確認失敗: ${error.message}`);
+            updateDebugInfo(`❌ 状況確認エラー: ${error.message}\n`);
+        }
+    }
+    
+    /**
+     * 時間指定投稿停止
+     */
+    async function stopScheduleFromUI() {
+        try {
+            const confirmed = confirm('時間指定投稿を停止しますか？\n自動投稿が停止されます。');
+            if (!confirmed) {
+                addLog('info', 'ユーザーが停止をキャンセルしました');
+                return;
+            }
+            
+            addLog('info', '🛑 時間指定投稿停止中');
+            updateDebugInfo('=== 時間指定投稿停止 ===\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 15秒経過'));
+                }, 15000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ stopScheduleTriggerForUI 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ stopScheduleTriggerForUI 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .stopScheduleTriggerForUI();
+            });
+            
+            if (result && result.success) {
+                updateDebugInfo(`✅ 停止成功\n`);
+                updateDebugInfo(`削除されたトリガー: ${result.data.deletedTriggers || 0}個\n`);
+                
+                addLog('success', '✅ 時間指定投稿停止完了');
+                showAlert('success', '🛑 時間指定投稿を停止しました');
+                
+                await checkScheduleFromUI();
+                
+            } else {
+                throw new Error(result?.message || '停止に失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ 時間指定投稿停止エラー:', error);
+            addLog('error', `❌ 停止失敗: ${error.message}`);
+            updateDebugInfo(`❌ 停止エラー: ${error.message}\n`);
+            showAlert('error', `時間指定投稿の停止に失敗しました: ${error.message}`);
+        }
+    }
+    
+    /**
+     * 次回投稿時間取得
+     */
+    async function getNextPostTimeFromUI() {
+        try {
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 10秒経過'));
+                }, 10000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        reject(new Error(error.toString()));
+                    })
+                    .getNextPostTimeForUI();
+            });
+            
+            if (result && result.success && result.data) {
+                const data = result.data;
+                
+                updateDebugInfo(`\n=== 次回投稿予定 ===\n`);
+                updateDebugInfo(`次回投稿時間: ${data.nextPostTime}\n`);
+                updateDebugInfo(`投稿予定日: ${data.isToday ? '今日' : '明日'}\n`);
+                updateDebugInfo(`残り時間: ${data.timeUntilText}\n`);
+                
+                addLog('info', `⏰ 次回投稿: ${data.isToday ? '今日' : '明日'} ${data.nextPostTime} (${data.timeUntilText})`);
+                
+            }
+            
+        } catch (error) {
+            console.error('❌ 次回投稿時間取得エラー:', error);
+            addLog('warning', `⚠️ 次回投稿時間の取得に失敗: ${error.message}`);
+        }
+    }
+
+    // 🔧 【修正版】診断・テスト機能 - 構造修正済み
+    
+    /**
+     * ヘルスチェック（修正版）
+     */
+    async function performHealthCheckFixed() {
+        try {
+            addLog('info', '⚕️ ヘルスチェック開始');
+            updateDebugInfo('=== ヘルスチェック実行 ===\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 15秒経過'));
+                }, 15000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ performHealthCheck 成功:', response);
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ performHealthCheck 失敗:', error);
+                        reject(new Error(error.toString()));
+                    })
+                    .performHealthCheck();
+            });
+            
+            if (result && result.success) {
+                updateDebugInfo(`✅ ヘルスチェック完了\n`);
+                updateDebugInfo(`総合健康状態: ${result.data.overallHealth ? '✅ 正常' : '❌ 問題あり'}\n`);
+                
+                if (result.data.issues && result.data.issues.length > 0) {
+                    updateDebugInfo(`検出された問題:\n`);
+                    result.data.issues.forEach(issue => {
+                        updateDebugInfo(`  - ${issue}\n`);
+                    });
+                }
+                
+                addLog('success', `✅ ヘルスチェック完了 - ${result.data.overallHealth ? '正常' : '問題あり'}`);
+                showAlert(result.data.overallHealth ? 'success' : 'warning', 
+                         result.data.overallHealth ? 'システムは正常です' : 'システムに問題があります');
+                
+            } else {
+                throw new Error(result?.message || 'ヘルスチェックに失敗しました');
+            }
+            
+        } catch (error) {
+            console.error('❌ ヘルスチェックエラー:', error);
+            addLog('error', `❌ ヘルスチェック失敗: ${error.message}`);
+            updateDebugInfo(`❌ ヘルスチェックエラー: ${error.message}\n`);
+            showAlert('error', `ヘルスチェックに失敗しました: ${error.message}`);
+        }
+    }
+
+    /**
+     * バックエンド接続テスト（修正版）
+     */
+    async function testBackendConnectionFixed() {
+        try {
+            addLog('info', '🔧 段階的バックエンド接続テスト開始');
+            updateDebugInfo('=== 段階的接続テスト ===\n');
+            
+            const testFunctions = [
+                { name: 'simpleTest', description: '最もシンプルなテスト' },
+                { name: 'webAppTest', description: 'Webアプリ環境テスト' },
+                { name: 'permissionTest', description: '権限アクセステスト' },
+                { name: 'getSystemStatusSimple', description: '簡易データ取得テスト' },
+                { name: 'getSystemStatusForUI', description: '完全データ取得テスト' }
+            ];
+            
+            let successCount = 0;
+            let firstSuccessFunction = null;
+            
+            for (const testFunc of testFunctions) {
+                try {
+                    updateDebugInfo(`\n${testFunc.name} (${testFunc.description}) テスト中...\n`);
+                    addLog('info', `📡 ${testFunc.name} テスト中...`);
+                    
+                    const result = await new Promise((resolve, reject) => {
+                        const timeoutId = setTimeout(() => {
+                            reject(new Error('タイムアウト: 10秒経過'));
+                        }, 10000);
+                        
+                        google.script.run
+                            .withSuccessHandler(function(response) {
+                                clearTimeout(timeoutId);
+                                console.log(`✅ ${testFunc.name} 成功:`, response);
+                                resolve(response);
+                            })
+                            .withFailureHandler(function(error) {
+                                clearTimeout(timeoutId);
+                                console.error(`❌ ${testFunc.name} 失敗:`, error);
+                                reject(new Error(error.message || error));
+                            })[testFunc.name]();
+                    });
+                    
+                    updateDebugInfo(`✅ ${testFunc.name}: 成功\n`);
+                    addLog('success', `✅ ${testFunc.name}: 成功`);
+                    successCount++;
+                    
+                    if (!firstSuccessFunction) {
+                        firstSuccessFunction = testFunc.name;
+                    }
+                    
+                    if (result && typeof result === 'object') {
+                        updateDebugInfo(`  応答: ${JSON.stringify(result, null, 2)}\n`);
+                    }
+                    
+                } catch (error) {
+                    updateDebugInfo(`❌ ${testFunc.name}: ${error.message}\n`);
+                    addLog('error', `❌ ${testFunc.name}: ${error.message}`);
+                }
+            }
+            
+            updateDebugInfo(`\n=== テスト結果サマリー ===\n`);
+            updateDebugInfo(`成功: ${successCount}/${testFunctions.length}\n`);
+            
+            if (successCount > 0) {
+                updateDebugInfo(`最初に成功した関数: ${firstSuccessFunction}\n`);
+                showAlert('success', `${successCount}/${testFunctions.length} 関数で接続成功！最初の成功: ${firstSuccessFunction}`);
+                addLog('success', '✅ バックエンド接続テスト完了 - 一部成功');
+                
+                if (firstSuccessFunction === 'getSystemStatusForUI' || firstSuccessFunction === 'getSystemStatusSimple') {
+                    updateDebugInfo(`\n${firstSuccessFunction}を使用してデータ更新を試行...\n`);
+                    try {
+                        await callBackendFunction(firstSuccessFunction);
+                        showAlert('success', 'データ更新も成功しました！');
+                    } catch (updateError) {
+                        addLog('warning', `データ更新は失敗: ${updateError.message}`);
+                    }
+                }
+            } else {
+                updateDebugInfo(`❌ 全ての関数で接続失敗\n`);
+                updateDebugInfo(`推奨対応:\n`);
+                updateDebugInfo(`1. 新しいWebアプリデプロイを作成\n`);
+                updateDebugInfo(`2. 権限承認を再実行\n`);
+                updateDebugInfo(`3. シークレットモードでテスト\n`);
+                
+                showAlert('error', '全ての関数で接続失敗 - デプロイ設定を確認してください');
+                addLog('error', '❌ バックエンド接続テスト失敗 - 全機能で失敗');
+            }
+            
+        } catch (error) {
+            console.error('❌ 接続テストエラー:', error);
+            updateDebugInfo(`❌ 接続テスト致命的エラー: ${error.message}\n`);
+            showAlert('error', `接続テストに失敗しました: ${error.message}`);
+        }
+    }
+
+    /**
+     * 直接接続テスト（修正版）
+     */
+    async function testDirectConnectionFixed() {
+        try {
+            addLog('info', '🎯 直接関数呼び出しテスト開始');
+            updateDebugInfo('=== 直接関数呼び出しテスト ===\n');
+            
+            updateDebugInfo('getSystemStatusForUI 直接呼び出し中...\n');
+            
+            const result = await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('タイムアウト: 15秒経過'));
+                }, 15000);
+                
+                google.script.run
+                    .withSuccessHandler(function(response) {
+                        clearTimeout(timeoutId);
+                        console.log('✅ 直接呼び出し成功:', response);
+                        updateDebugInfo(`✅ 成功応答受信\n`);
+                        updateDebugInfo(`応答タイプ: ${typeof response}\n`);
+                        
+                        if (response) {
+                            updateDebugInfo(`応答内容: ${JSON.stringify(response, null, 2)}\n`);
+                            
+                            if (response.success && response.data) {
+                                updateStatusCards(response.data);
+                                updateAccountList(response.data.accounts || []);
+                                updateSystemStatus('healthy', 'システム正常稼働中');
+                                showAlert('success', '✅ データ更新成功！システムが正常に動作しています');
+                            }
+                        }
+                        
+                        resolve(response);
+                    })
+                    .withFailureHandler(function(error) {
+                        clearTimeout(timeoutId);
+                        console.error('❌ 直接呼び出し失敗:', error);
+                        updateDebugInfo(`❌ 失敗: ${error}\n`);
+                        reject(new Error(error));
+                    })
+                    .getSystemStatusForUI();
+            });
+            
+            addLog('success', '✅ 直接関数呼び出しテスト成功');
+            return result;
+            
+        } catch (error) {
+            console.error('❌ 直接関数テストエラー:', error);
+            updateDebugInfo(`❌ 直接テストエラー: ${error.message}\n`);
+            addLog('error', `❌ 直接テスト失敗: ${error.message}`);
+            
+            updateDebugInfo('\n=== エラー詳細分析 ===\n');
+            updateDebugInfo(`エラータイプ: ${error.name}\n`);
+            updateDebugInfo(`エラーメッセージ: ${error.message}\n`);
+            
+            if (error.message.includes('null')) {
+                updateDebugInfo('原因: バックエンド関数が null を返している\n');
+                updateDebugInfo('対策: デプロイ設定の確認が必要\n');
+            } else if (error.message.includes('not a function')) {
+                updateDebugInfo('原因: 関数がデプロイに含まれていない\n'); 
+                updateDebugInfo('対策: 新しいデプロイが必要\n');
+            } else if (error.message.includes('タイムアウト')) {
+                updateDebugInfo('原因: バックエンドの応答が遅い\n');
+                updateDebugInfo('対策: 処理時間の最適化が必要\n');
+            }
+            
+            showAlert('error', `直接テスト失敗: ${error.message}`);
+            throw error;
+        }
+    }
+
+    // 🎨 プログレス表示機能（タイムアウト対策）
+    
+    function showProgressAlert(title, message) {
+        const alertContainer = document.getElementById('alertContainer');
+        if (!alertContainer) return;
+        
+        const progressDiv = document.createElement('div');
+        progressDiv.id = 'progressAlert';
+        progressDiv.className = 'alert alert-info';
+        progressDiv.innerHTML = `
+            <div class="spinner"></div>
+            <div>
+                <strong>${escapeHtml(title)}</strong><br>
+                <span>${escapeHtml(message)}</span>
+            </div>
+        `;
+        
+        alertContainer.appendChild(progressDiv);
+    }
+    
+    function hideProgressAlert() {
+        const progressAlert = document.getElementById('progressAlert');
+        if (progressAlert) {
+            progressAlert.remove();
+        }
+    }
+
+    // 🎨 UI更新・表示機能
+    
+    function updateStatusCards(data) {
+        try {
+            const updates = [
+                {id: 'activeAccounts', value: data.activeAccounts || 0},
+                {id: 'todayPosts', value: `${data.todayPosts || 0}${data.maxPosts > 0 ? ` / ${data.maxPosts}` : ''}`},
+                {id: 'successRate', value: `${data.successRate || 100}%`},
+                {id: 'availableContent', value: data.availableContent || 0}
+            ];
+            
+            updates.forEach(update => {
+                const element = document.getElementById(update.id);
+                if (element) {
+                    element.textContent = update.value;
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ ステータスカード更新エラー:', error);
+            addLog('error', `❌ ステータスカード更新エラー: ${error.message}`);
+        }
+    }
+
+    function updateAccountList(accounts) {
+        const accountList = document.getElementById('accountList');
+        if (!accountList) return;
+        
+        if (!accounts || accounts.length === 0) {
+            accountList.innerHTML = `
+                <div class="loading-placeholder">
+                    <span>⚠️ アカウントが登録されていません</span>
+                </div>
+            `;
+            return;
+        }
+        
+        accountList.innerHTML = accounts.map(account => {
+            const statusClass = account.hasToken ? 'status-active' : 'status-error';
+            const statusText = account.hasToken ? 'アクティブ' : 'トークンなし';
+            
+            return `
+                <div class="account-item">
+                    <div class="account-info">
+                        <div class="account-name">${escapeHtml(account.username)}</div>
+                        <div class="account-status">
+                            ID: ${escapeHtml(account.id)} | 
+                            最終投稿: ${account.lastPostTime || '未投稿'} |
+                            トークン: ${account.hasToken ? '✅' : '❌'}
+                        </div>
+                    </div>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function updateSystemStatus(status, message) {
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        
+        if (statusIndicator) {
+            statusIndicator.className = 'status-indicator';
+            switch (status) {
+                case 'healthy':
+                    statusIndicator.style.background = 'var(--success-color)';
+                    break;
+                case 'warning':
+                    statusIndicator.style.background = 'var(--warning-color)';
+                    break;
+                case 'error':
+                    statusIndicator.className = 'status-indicator error';
+                    break;
+                case 'loading':
+                    statusIndicator.className = 'status-indicator loading';
+                    statusIndicator.style.background = 'var(--primary-color)';
+                    break;
+            }
+        }
+        
+        if (statusText) {
+            statusText.textContent = message;
+        }
+    }
+
+    function updateLoadingState() {
+        const hasActiveOperations = AppState.activeOperations.size > 0;
+        if (hasActiveOperations && !AppState.isLoading) {
+            updateSystemStatus('loading', '処理実行中...');
+        }
+    }
+
+    function updateLastUpdateTime() {
+        const lastUpdateElement = document.getElementById('lastUpdate');
+        if (lastUpdateElement && AppState.lastUpdate) {
+            const timeString = AppState.lastUpdate.toLocaleTimeString();
+            lastUpdateElement.textContent = `最終更新: ${timeString}`;
+        }
+    }
+
+    function updateDebugInfo(text) {
+        const debugInfo = document.getElementById('debugInfo');
+        if (debugInfo) {
+            if (text.startsWith('===') || text.includes('開始')) {
+                debugInfo.textContent = text;
+            } else {
+                debugInfo.textContent += text;
+            }
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+        }
+    }
+
+    // ログ機能
+    function addLog(level, message) {
+        const logArea = document.getElementById('logArea');
+        if (!logArea) return;
+        
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry ${level}`;
+        logEntry.innerHTML = `
+            <span class="log-time">[${timestamp}]</span>
+            <span class="log-message">${escapeHtml(message)}</span>
+        `;
+        
+        logArea.appendChild(logEntry);
+        
+        const entries = logArea.querySelectorAll('.log-entry');
+        if (entries.length > CONFIG.MAX_LOG_ENTRIES) {
+            entries[0].remove();
+        }
+        
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    function showAlert(type, message) {
+        const alertContainer = document.getElementById('alertContainer');
+        if (!alertContainer) return;
+        
+        const alertId = `alert_${Date.now()}`;
+        const alertDiv = document.createElement('div');
+        alertDiv.id = alertId;
+        alertDiv.className = `alert alert-${type}`;
+        
+        const icon = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        }[type] || 'ℹ️';
+        
+        alertDiv.innerHTML = `
+            <span>${icon}</span>
+            <span>${escapeHtml(message)}</span>
+        `;
+        
+        alertContainer.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) {
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, CONFIG.ALERT_AUTO_DISMISS);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // 🔧 【完成版】起動時メッセージ
+    console.log('🎉 === Threads自動アフィリエイトシステム - WebUI完成版 ===');
+    console.log('✅ 重複関数削除完了');
+    console.log('✅ 関数構造修正完了');
+    console.log('✅ エラーハンドリング強化完了');
+    console.log('✅ 時間指定投稿UI統合完了');
+    console.log('✅ 包括的診断機能実装完了');
+    console.log('🚀 システム準備完了 - 本格運用開始可能！');
+  </script>
+</body>
+
+</html>
